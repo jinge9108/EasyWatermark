@@ -479,17 +479,26 @@ class MainActivity : AppCompatActivity() {
         }
         // take photo button
         launchView.ivTakePhoto.setOnClickListener {
-            val photoFile = File(this@MainActivity.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
-            currentPhotoUri = FileProvider.getUriForFile(
-                this@MainActivity,
-                "${me.rosuh.easywatermark.BuildConfig.APPLICATION_ID}.fileprovider",
-                photoFile
-            )
-            try {
-                takePictureLauncher.launch(currentPhotoUri)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this@MainActivity, R.string.tips_error, Toast.LENGTH_SHORT).show()
+            val action = {
+                val photoFile =
+                    File(this@MainActivity.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
+                currentPhotoUri = FileProvider.getUriForFile(
+                    this@MainActivity,
+                    "${me.rosuh.easywatermark.BuildConfig.APPLICATION_ID}.fileprovider",
+                    photoFile
+                )
+                try {
+                    takePictureLauncher.launch(currentPhotoUri)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Toast.makeText(this@MainActivity, R.string.tips_error, Toast.LENGTH_SHORT).show()
+                }
+            }
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                action.invoke()
+            } else {
+                pendingPermissionAction = action
+                requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
             }
         }
         // setting bg
