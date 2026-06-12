@@ -1,0 +1,8 @@
+<resources>
+
+    <style name="Theme.MyApp" parent="Theme.BaseTheme">
+        <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
+        <item name="android:statusBarColor">@color/material_dynamic_neutral10</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

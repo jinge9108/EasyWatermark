@@ -1,0 +1,7 @@
+<resources>
+
+    <style name="Theme.MyApp" parent="Theme.BaseTheme">
+        <item name="android:statusBarColor">@color/md_theme_dark_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

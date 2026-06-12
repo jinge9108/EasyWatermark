@@ -1,0 +1,117 @@
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <style name="ShapeAppearance.App.SmallComponent" parent="ShapeAppearance.Material3.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">0dp</item>
+    </style>
+
+    <style name="ShapeAppearance.App.MediumComponent" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">0dp</item>
+    </style>
+
+    <style name="ShapeAppearance.App.LargeComponent" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">0dp</item>
+    </style>
+
+    <style name="ShapeAppearance.App.FloatActionButton" parent="ShapeAppearanceOverlay.Material3.FloatingActionButton">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">0dp</item>
+    </style>
+
+    <style name="WindowAnimationTransition" parent="Animation.MaterialComponents.BottomSheetDialog">
+        <item name="android:activityOpenEnterAnimation">@anim/activity_open_in</item>
+        <item name="android:activityOpenExitAnimation">@anim/activity_open_out</item>
+        <item name="android:activityCloseEnterAnimation">@anim/activity_close_in</item>
+        <item name="android:activityCloseExitAnimation">@anim/activity_close_out</item>
+    </style>
+
+    <style name="Theme.MyApp.TitleText" parent="MaterialAlertDialog.Material3.Title.Text">
+    </style>
+
+    <style name="MySeekBarStyle" parent="Widget.Material3.Slider">
+        <item name="android:maxHeight">20dp</item>
+        <item name="android:height">20dp</item>
+        <item name="android:backgroundTint">@android:color/transparent</item>
+        <item name="thumbRadius">10dp</item>
+        <item name="thumbStrokeColor">@android:color/transparent</item>
+        <item name="tickColor">@android:color/transparent</item>
+        <item name="trackHeight">2dp</item>
+    </style>
+
+    <style name="TextInputLayoutStyle" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">0dp</item>
+    </style>
+
+    <style name="ProgressBarStyle" parent="Widget.AppCompat.ProgressBar">
+        <item name="android:indeterminate">true</item>
+    </style>
+
+    <style name="AboutPageTextViewStyle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:paddingStart">28dp</item>
+        <item name="android:paddingEnd">28dp</item>
+    </style>
+
+    <style name="SaveDialogTextViewStyle" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="android:textColor">@color/md_theme_dark_onSurface</item>
+        <item name="android:paddingStart">0dp</item>
+        <item name="android:paddingEnd">0dp</item>
+    </style>
+
+    <style name="SaveDialogExposedDropdownMenu" parent="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxBackgroundColor">@color/md_theme_dark_surface</item>
+        <item name="boxStrokeColor">@color/md_theme_dark_outline</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.App.SmallComponent</item>
+        <item name="hintTextColor">@color/md_theme_dark_onSurface</item>
+        <item name="endIconTint">@color/md_theme_dark_onSurface</item>
+        <item name="android:textColor">@color/md_theme_dark_onSurface</item>
+        <item name="android:textColorHint">@color/md_theme_dark_onSurface</item>
+    </style>
+
+    <style name="SaveDialogAutoCompleteTextView">
+        <item name="hintTextColor">@color/md_theme_dark_onSurface</item>
+        <item name="android:textColor">@color/md_theme_dark_onSurface</item>
+        <item name="android:textColorHint">@color/md_theme_dark_onSurface</item>
+    </style>
+
+    <style name="BottomSheetDialog.App" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="shapeAppearance">@style/ShapeAppearance.App.SmallComponent</item>
+        <item name="shapeAppearanceOverlay">@null</item>
+    </style>
+
+    <style name="MaterialAlertDialog.App" parent="MaterialAlertDialog.Material3">
+        <item name="shapeAppearance">@style/ShapeAppearance.App.SmallComponent</item>
+        <item name="shapeAppearanceOverlay">@null</item>
+    </style>
+
+    <style name="MaterialAlertDialog.App.Title.Text" parent="MaterialAlertDialog.Material3.Title.Text">
+    </style>
+
+    <style name="BottomSheetDialog.App.Button" parent="Widget.Material3.Button.IconButton.Filled">
+        <item name="shapeAppearance">@style/ShapeAppearance.App.SmallComponent</item>
+        <item name="shapeAppearanceOverlay">@null</item>
+    </style>
+
+    <style name="ThemeOverlay.App.FloatingActionButton" parent="ThemeOverlay.Material3.FloatingActionButton.Primary">
+        <item name="colorContainer">?attr/colorPrimaryContainer</item>
+        <item name="colorOnContainer">?attr/colorOnPrimaryContainer</item>
+    </style>
+
+    <style name="Widget.App.Button" parent="Widget.Material3.Button">
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.None</item>
+        <item name="materialThemeOverlay">@style/ThemeOverlay.Material3.Button</item>
+    </style>
+
+    <style name="Widget.App.Button.TextButton" parent="Widget.Material3.Button.TextButton">
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.None</item>
+        <item name="materialThemeOverlay">@style/ThemeOverlay.Material3.Button.TextButton</item>
+    </style>
+
+    <style name="Widget.App.AlertDialog.Button" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.None</item>
+        <item name="materialThemeOverlay">@style/ThemeOverlay.Material3.Button.TextButton</item>
+    </style>
+
+</resources>
