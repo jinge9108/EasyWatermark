@@ -258,6 +258,7 @@ class MainActivity : AppCompatActivity() {
             registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
                 if (success) {
                     currentPhotoUri?.let { uri ->
+                        viewModel.applyDynamicWatermark()
                         handlePickedMedia(REQ_CODE_PICK_IMAGE, listOf(uri))
                     }
                 }

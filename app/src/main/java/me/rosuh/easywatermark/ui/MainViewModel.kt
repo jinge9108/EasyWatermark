@@ -55,6 +55,7 @@ import me.rosuh.easywatermark.data.repo.UserConfigRepository
 import me.rosuh.easywatermark.data.repo.WaterMarkRepository
 import me.rosuh.easywatermark.ui.widget.WaterMarkImageView
 import me.rosuh.easywatermark.utils.FileUtils.Companion.outPutFolderName
+import me.rosuh.easywatermark.utils.LocationHelper
 import me.rosuh.easywatermark.utils.bitmap.calculateInSampleSize
 import me.rosuh.easywatermark.utils.bitmap.decodeBitmapFromUri
 import me.rosuh.easywatermark.utils.bitmap.decodeSampledBitmapFromResource
@@ -64,7 +65,9 @@ import me.rosuh.easywatermark.utils.ktx.launch
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -457,6 +460,17 @@ class MainViewModel @Inject constructor(
     fun updateText(text: String) {
         launch {
             waterMarkRepo.updateText(text)
+        }
+    }
+
+    fun applyDynamicWatermark() {
+        viewModelScope.launch {
+            val date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+            val dayOfWeek = SimpleDateFormat("EEEE", Locale.getDefault()).format(Date())
+            val deviceModel = Build.MODEL
+            val location = LocationHelper(MyApp.instance).getCurrentLocation()
+            val dynamicText = "$date $dayOfWeek\n$location\n$deviceModel"
+            waterMarkRepo.updateText(dynamicText)
         }
     }
 
