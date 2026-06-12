@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
         get() = ((launchView.parent as? View?)?.background as? ColorDrawable)?.color ?: colorSurface
 
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var requestMultiplePermissionsLauncher: ActivityResultLauncher<Array<String>>
 
     private var pendingPermissionAction: (() -> Unit)? = null
 
@@ -274,6 +275,18 @@ class MainActivity : AppCompatActivity() {
                 getString(R.string.request_permission_failed),
                 Toast.LENGTH_SHORT
             ).show()
+            pendingPermissionAction = null
+        }
+        requestMultiplePermissionsLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            if (results.all { it.value }) {
+                pendingPermissionAction?.invoke()
+            } else {
+                Toast.makeText(
+                    this,
+                    getString(R.string.request_permission_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
             pendingPermissionAction = null
         }
     }
@@ -495,11 +508,17 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, R.string.tips_error, Toast.LENGTH_SHORT).show()
                 }
             }
-            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                action.invoke()
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            action.invoke()
             } else {
-                pendingPermissionAction = action
-                requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+            pendingPermissionAction = action
+            requestMultiplePermissionsLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.CAMERA,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            )
             }
         }
         // setting bg
