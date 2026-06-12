@@ -482,10 +482,15 @@ class MainActivity : AppCompatActivity() {
             val photoFile = File(this@MainActivity.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
             currentPhotoUri = FileProvider.getUriForFile(
                 this@MainActivity,
-                "${this@MainActivity.packageName}.fileprovider",
+                "${me.rosuh.easywatermark.BuildConfig.APPLICATION_ID}.fileprovider",
                 photoFile
             )
-            takePictureLauncher.launch(currentPhotoUri)
+            try {
+                takePictureLauncher.launch(currentPhotoUri)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this@MainActivity, R.string.tips_error, Toast.LENGTH_SHORT).show()
+            }
         }
         // setting bg
         launchView.ivPhoto.apply {
