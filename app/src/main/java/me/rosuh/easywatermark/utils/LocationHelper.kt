@@ -33,10 +33,10 @@ class LocationHelper(private val context: Context) {
             }
 
             try {
-                val provider = if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                    LocationManager.NETWORK_PROVIDER
-                } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                val provider = if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     LocationManager.GPS_PROVIDER
+                } else if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                    LocationManager.NETWORK_PROVIDER
                 } else {
                     null
                 }
@@ -58,10 +58,8 @@ class LocationHelper(private val context: Context) {
             val addresses = geocoder.getFromLocation(latitude, longitude, 1)
             if (!addresses.isNullOrEmpty()) {
                 val address = addresses[0]
-                val city = address.locality ?: ""
-                val adminArea = address.adminArea ?: ""
-                val featureName = address.featureName ?: ""
-                "$adminArea $city $featureName".trim()
+                // getAddressLine(0) usually contains the full address including street and building
+                address.getAddressLine(0) ?: "Unknown Address"
             } else {
                 "Unknown Address"
             }
