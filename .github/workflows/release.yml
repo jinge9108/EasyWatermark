@@ -8,11 +8,10 @@ env:
   CI_GRADLE_ARG_PROPERTIES: --stacktrace -PpreDexEnable=false --max-workers 2 --no-daemon
 
 on:
-  # on merge to master
   push:
-      branches:
-      - master
-      paths-ignore:
+    branches:
+      - main
+    paths-ignore:
         - '.idea/**'
         - '.gitattributes'
         - '.github/**.json'
@@ -21,6 +20,7 @@ on:
         - '**.md'
         - 'LICENSE'
         - 'NOTICE'
+  workflow_dispatch:
 
 jobs:
   check:
