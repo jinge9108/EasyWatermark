@@ -479,10 +479,10 @@ class MainActivity : AppCompatActivity() {
         }
         // take photo button
         launchView.ivTakePhoto.setOnClickListener {
-            val photoFile = File(cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
+            val photoFile = File(this@MainActivity.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
             currentPhotoUri = FileProvider.getUriForFile(
-                this,
-                "${packageName}.fileprovider",
+                this@MainActivity,
+                "${this@MainActivity.packageName}.fileprovider",
                 photoFile
             )
             takePictureLauncher.launch(currentPhotoUri)

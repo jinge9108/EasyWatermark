@@ -87,4 +87,5 @@
     <string name="title_tile_mode">Modo de baldosas</string>
     <string name="tile_mode_title_repeat">Repetir</string>
     <string name="tile_mode_title_decal">Único</string>
+    <string name="tips_take_photo">Take Photo</string>
 </resources>
