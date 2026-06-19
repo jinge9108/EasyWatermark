@@ -1,6 +1,7 @@
 package me.rosuh.easywatermark.ui
 
 import android.animation.ObjectAnimator
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -11,9 +12,14 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.*
 import android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
@@ -26,6 +32,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -57,14 +64,18 @@ import me.rosuh.easywatermark.utils.FileUtils
 import me.rosuh.easywatermark.utils.VibrateHelper
 import me.rosuh.easywatermark.utils.ktx.*
 import me.rosuh.easywatermark.utils.onItemClick
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var pickIconPhotoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
-    private lateinit var pickMultiplePhotoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
     private lateinit var pickIconLegacyLauncher: ActivityResultLauncher<String>
+    private lateinit var takePictureLauncher: ActivityResultLauncher<Uri>
     private val viewModel: MainViewModel by viewModels()
 
     private val currentBgColor: Int
@@ -73,6 +84,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
 
     private var pendingPermissionAction: (() -> Unit)? = null
+    private var pendingCameraImageUri: Uri? = null
 
     private val isSystemPhotoPickerAvailable by lazy {
         ActivityResultContracts.PickVisualMedia.isPhotoPickerAvailable(this)
@@ -236,9 +248,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun registerResultCallback() {
-        pickMultiplePhotoPickerLauncher =
-            registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
-                handlePickedMedia(REQ_CODE_PICK_IMAGE, uris)
+        takePictureLauncher =
+            registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+                handleCapturedImage(success)
             }
         pickIconPhotoPickerLauncher =
             registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -696,9 +708,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Fires an intent to spin up the "file chooser" UI and select an image.
+     * Opens camera for the base image, or an image picker for watermark icons.
      */
     private fun performFileSearch(requestCode: Int) {
+        if (requestCode == REQ_CODE_PICK_IMAGE) {
+            launchCameraForImage()
+            return
+        }
+
         val request = PickVisualMediaRequest.Builder()
             .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
             .build()
@@ -707,7 +724,6 @@ class MainActivity : AppCompatActivity() {
             launchView.logoView.stop()
             when (requestCode) {
                 REQ_PICK_ICON -> pickIconPhotoPickerLauncher.launch(request)
-                else -> pickMultiplePhotoPickerLauncher.launch(request)
             }
             return
         }
@@ -727,6 +743,141 @@ class MainActivity : AppCompatActivity() {
             pendingPermissionAction = null
             action?.invoke()
         })
+    }
+
+    private fun launchCameraForImage() {
+        val updateWatermarkAndLaunchCamera = {
+            updateWatermarkTextWithGps {
+                launchCameraIntent()
+            }
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            updateWatermarkAndLaunchCamera()
+            return
+        }
+        pendingPermissionAction = updateWatermarkAndLaunchCamera
+        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    private fun launchCameraIntent() {
+        launchView.logoView.stop()
+        val uri = runCatching {
+            createCameraImageUri()
+        }.getOrElse {
+            launchView.logoView.start()
+            Toast.makeText(
+                this,
+                "${getString(R.string.tips_error)}: ${it.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        pendingCameraImageUri = uri
+        runCatching {
+            takePictureLauncher.launch(uri)
+        }.getOrElse {
+            pendingCameraImageUri = null
+            launchView.logoView.start()
+            Toast.makeText(
+                this,
+                "${getString(R.string.tips_error)}: ${it.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun updateWatermarkTextWithGps(onUpdated: () -> Unit) {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val fallbackLocation = runCatching {
+            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+        }.getOrNull()
+
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER).not()) {
+            updateWatermarkText(fallbackLocation, onUpdated)
+            return
+        }
+
+        var finished = false
+        lateinit var listener: LocationListener
+        val handler = Handler(Looper.getMainLooper())
+        fun finish(location: Location?) {
+            if (finished) {
+                return
+            }
+            finished = true
+            runCatching { locationManager.removeUpdates(listener) }
+            updateWatermarkText(location ?: fallbackLocation, onUpdated)
+        }
+
+        listener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                finish(location)
+            }
+
+            override fun onProviderDisabled(provider: String) {
+                finish(fallbackLocation)
+            }
+        }
+
+        handler.postDelayed({ finish(fallbackLocation) }, GPS_LOCATION_TIMEOUT_MS)
+        runCatching {
+            locationManager.requestSingleUpdate(
+                LocationManager.GPS_PROVIDER,
+                listener,
+                Looper.getMainLooper()
+            )
+        }.getOrElse {
+            finish(fallbackLocation)
+        }
+    }
+
+    private fun updateWatermarkText(location: Location?, onUpdated: () -> Unit) {
+        viewModel.updateText(buildWatermarkText(location)).invokeOnCompletion {
+            runOnUiThread { onUpdated() }
+        }
+    }
+
+    private fun buildWatermarkText(location: Location?): String {
+        val now = Date()
+        val locale = Locale.getDefault()
+        val date = SimpleDateFormat("yyyy-MM-dd", locale).format(now)
+        val time = SimpleDateFormat("HH:mm:ss", locale).format(now)
+        val week = SimpleDateFormat("EEEE", locale).format(now)
+        val place = location?.let {
+            val accuracy = if (it.hasAccuracy()) ", ±${it.accuracy.toInt()}m" else ""
+            String.format(locale, "%.6f, %.6f%s", it.latitude, it.longitude, accuracy)
+        } ?: getString(R.string.watermark_location_unavailable)
+        val model = listOf(Build.MANUFACTURER, Build.MODEL)
+            .filter { it.isNotBlank() }
+            .distinct()
+            .joinToString(" ")
+        return listOf(date, time, week, place, model).joinToString("\n")
+    }
+
+    private fun createCameraImageUri(): Uri {
+        val cameraDir = File(cacheDir, "compressor").apply {
+            mkdirs()
+        }
+        val imageFile = File(cameraDir, "camera_${System.currentTimeMillis()}.jpg")
+        return FileProvider.getUriForFile(this, "$packageName.fileprovider", imageFile)
+    }
+
+    private fun handleCapturedImage(success: Boolean) {
+        launchView.logoView.start()
+        val uri = pendingCameraImageUri
+        pendingCameraImageUri = null
+        if (success && uri != null) {
+            dealWithImage(listOf(uri))
+            return
+        }
+        Toast.makeText(
+            this,
+            getString(R.string.tips_do_not_choose_image),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun openLegacyGallery() {
@@ -863,5 +1014,6 @@ class MainActivity : AppCompatActivity() {
         private const val REQ_CODE_PICK_IMAGE: Int = 42
         const val REQ_CODE_REQ_WRITE_PERMISSION: Int = 43
         const val REQ_PICK_ICON: Int = 44
+        private const val GPS_LOCATION_TIMEOUT_MS: Long = 8000L
     }
 }

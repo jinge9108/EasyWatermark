@@ -454,10 +454,8 @@ class MainViewModel @Inject constructor(
                 }
         }
 
-    fun updateText(text: String) {
-        launch {
-            waterMarkRepo.updateText(text)
-        }
+    fun updateText(text: String) = launch {
+        waterMarkRepo.updateText(text)
     }
 
     fun updateTextSize(textSize: Float) {

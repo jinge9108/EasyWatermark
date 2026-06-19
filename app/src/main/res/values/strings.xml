@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Easy Watermark</string>
-    <string name="action_pick">Choose picture</string>
+    <string name="action_pick">Take photo</string>
     <string name="action_save">Save</string>
     <string name="action_settings">About</string>
     <string name="title_layout">Layout</string>
@@ -45,7 +45,7 @@
     <string name="msg_crash">Would you like to report this crash? This can help us improve the app! This will not collect any personal information.</string>
     <string name="crash_mail">Send email</string>
     <string name="tip_not_mail_found">No email client detected. Alternatively, you can paste the error message to the app store or GitHub.</string>
-    <string name="config_default_water_mark_text">👋 DO NOT REDISTRIBUTE</string>
+    <string name="config_default_water_mark_text">Date\nTime\nWeekday\nLocation\nPhone model</string>
     <string name="style_alpha">Alpha</string>
     <string name="tips_not_app_can_open_images">No file manager detected.</string>
     <string name="tips_choose_other_file_type">Invalid image</string>
@@ -73,7 +73,8 @@
     <string name="dialog_save_config_format">Format</string>
     <string name="dialog_save_config_quality">Quality</string>
     <string name="dialog_save_exporting">Exporting</string>
-    <string name="tips_pick_image">Choose Images</string>
+    <string name="tips_pick_image">Take Photo</string>
+    <string name="watermark_location_unavailable">Location unavailable</string>
     <string name="pick_via_system">more…</string>
     <string name="recovery_title">Recovery Mode</string>
     <string name="copy_success">Copy success</string>
