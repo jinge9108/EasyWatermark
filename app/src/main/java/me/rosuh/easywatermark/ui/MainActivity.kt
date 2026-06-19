@@ -12,6 +12,7 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -45,8 +46,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.rosuh.easywatermark.MyApp
 import me.rosuh.easywatermark.R
 import me.rosuh.easywatermark.data.model.FuncTitleModel
@@ -82,6 +85,7 @@ class MainActivity : AppCompatActivity() {
         get() = ((launchView.parent as? View?)?.background as? ColorDrawable)?.color ?: colorSurface
 
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var requestCameraPermissionsLauncher: ActivityResultLauncher<Array<String>>
 
     private var pendingPermissionAction: (() -> Unit)? = null
     private var pendingCameraImageUri: Uri? = null
@@ -275,6 +279,24 @@ class MainActivity : AppCompatActivity() {
             ).show()
             pendingPermissionAction = null
         }
+        requestCameraPermissionsLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+                val hasCameraPermission = grants[Manifest.permission.CAMERA]
+                    ?: hasPermission(Manifest.permission.CAMERA)
+                val hasLocationPermission = grants[Manifest.permission.ACCESS_FINE_LOCATION]
+                    ?: hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                if (hasCameraPermission && hasLocationPermission) {
+                    pendingPermissionAction?.invoke()
+                    pendingPermissionAction = null
+                    return@registerForActivityResult
+                }
+                Toast.makeText(
+                    this,
+                    getString(R.string.request_permission_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+                pendingPermissionAction = null
+            }
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -751,14 +773,16 @@ class MainActivity : AppCompatActivity() {
                 launchCameraIntent()
             }
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
+        val missingPermissions = listOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ).filterNot(::hasPermission)
+        if (missingPermissions.isEmpty()) {
             updateWatermarkAndLaunchCamera()
             return
         }
         pendingPermissionAction = updateWatermarkAndLaunchCamera
-        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        requestCameraPermissionsLauncher.launch(missingPermissions.toTypedArray())
     }
 
     private fun launchCameraIntent() {
@@ -835,8 +859,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateWatermarkText(location: Location?, onUpdated: () -> Unit) {
-        viewModel.updateText(buildWatermarkText(location)).invokeOnCompletion {
-            runOnUiThread { onUpdated() }
+        lifecycleScope.launch {
+            val text = withContext(Dispatchers.IO) {
+                buildWatermarkText(location)
+            }
+            viewModel.updateText(text).invokeOnCompletion {
+                runOnUiThread { onUpdated() }
+            }
         }
     }
 
@@ -846,15 +875,52 @@ class MainActivity : AppCompatActivity() {
         val date = SimpleDateFormat("yyyy-MM-dd", locale).format(now)
         val time = SimpleDateFormat("HH:mm:ss", locale).format(now)
         val week = SimpleDateFormat("EEEE", locale).format(now)
-        val place = location?.let {
-            val accuracy = if (it.hasAccuracy()) ", ±${it.accuracy.toInt()}m" else ""
-            String.format(locale, "%.6f, %.6f%s", it.latitude, it.longitude, accuracy)
-        } ?: getString(R.string.watermark_location_unavailable)
+        val place = location?.let(::buildLocationText)
+            ?: getString(R.string.watermark_location_unavailable)
         val model = listOf(Build.MANUFACTURER, Build.MODEL)
             .filter { it.isNotBlank() }
             .distinct()
             .joinToString(" ")
         return listOf(date, time, week, place, model).joinToString("\n")
+    }
+
+    private fun buildLocationText(location: Location): String {
+        return resolveAddress(location) ?: formatCoordinates(location)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun resolveAddress(location: Location): String? {
+        if (Geocoder.isPresent().not()) {
+            return null
+        }
+        return runCatching {
+            Geocoder(this, Locale.getDefault())
+                .getFromLocation(location.latitude, location.longitude, 1)
+                ?.firstOrNull()
+                ?.let { address ->
+                    address.getAddressLine(0).orEmpty().ifBlank {
+                        listOfNotNull(
+                            address.thoroughfare,
+                            address.subThoroughfare,
+                            address.subLocality,
+                            address.locality,
+                            address.adminArea,
+                            address.countryName
+                        ).filter { it.isNotBlank() }.distinct().joinToString("")
+                    }
+                }
+                ?.takeIf { it.isNotBlank() }
+        }.getOrNull()
+    }
+
+    private fun formatCoordinates(location: Location): String {
+        val locale = Locale.getDefault()
+        val accuracy = if (location.hasAccuracy()) ", ±${location.accuracy.toInt()}m" else ""
+        return String.format(locale, "%.6f, %.6f%s", location.latitude, location.longitude, accuracy)
+    }
+
+    private fun hasPermission(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun createCameraImageUri(): Uri {
