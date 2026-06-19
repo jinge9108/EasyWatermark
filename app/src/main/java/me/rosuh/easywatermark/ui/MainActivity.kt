@@ -88,7 +88,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var requestCameraPermissionsLauncher: ActivityResultLauncher<Array<String>>
 
     private var pendingPermissionAction: (() -> Unit)? = null
+    private var pendingPermissionDeniedAction: (() -> Unit)? = null
     private var pendingCameraImageUri: Uri? = null
+    private var hasAutoLaunchedCamera = false
 
     private val isSystemPhotoPickerAvailable by lazy {
         ActivityResultContracts.PickVisualMedia.isPhotoPickerAvailable(this)
@@ -193,6 +195,13 @@ class MainActivity : AppCompatActivity() {
         checkHadCrash()
         // Activity was recycled but dialog still showing in some case?
         SaveImageBSDialogFragment.safetyHide(this@MainActivity.supportFragmentManager)
+        launchView.post {
+            if (hasAutoLaunchedCamera || intent?.action == ACTION_SEND) {
+                return@post
+            }
+            hasAutoLaunchedCamera = true
+            launchCameraForImage()
+        }
     }
 
     private fun initRecoveryView() {
@@ -270,6 +279,7 @@ class MainActivity : AppCompatActivity() {
             if (isGranted) {
                 pendingPermissionAction?.invoke()
                 pendingPermissionAction = null
+                pendingPermissionDeniedAction = null
                 return@registerForActivityResult
             }
             Toast.makeText(
@@ -277,17 +287,18 @@ class MainActivity : AppCompatActivity() {
                 getString(R.string.request_permission_failed),
                 Toast.LENGTH_SHORT
             ).show()
+            pendingPermissionDeniedAction?.invoke()
             pendingPermissionAction = null
+            pendingPermissionDeniedAction = null
         }
         requestCameraPermissionsLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
                 val hasCameraPermission = grants[Manifest.permission.CAMERA]
                     ?: hasPermission(Manifest.permission.CAMERA)
-                val hasLocationPermission = grants[Manifest.permission.ACCESS_FINE_LOCATION]
-                    ?: hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                if (hasCameraPermission && hasLocationPermission) {
+                if (hasCameraPermission) {
                     pendingPermissionAction?.invoke()
                     pendingPermissionAction = null
+                    pendingPermissionDeniedAction = null
                     return@registerForActivityResult
                 }
                 Toast.makeText(
@@ -296,6 +307,7 @@ class MainActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
                 pendingPermissionAction = null
+                pendingPermissionDeniedAction = null
             }
     }
 
@@ -768,21 +780,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchCameraForImage() {
-        val updateWatermarkAndLaunchCamera = {
-            updateWatermarkTextWithGps {
-                launchCameraIntent()
-            }
-        }
-        val missingPermissions = listOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ).filterNot(::hasPermission)
-        if (missingPermissions.isEmpty()) {
-            updateWatermarkAndLaunchCamera()
+        if (hasPermission(Manifest.permission.CAMERA)) {
+            launchCameraIntent()
             return
         }
-        pendingPermissionAction = updateWatermarkAndLaunchCamera
-        requestCameraPermissionsLauncher.launch(missingPermissions.toTypedArray())
+        pendingPermissionAction = ::launchCameraIntent
+        requestCameraPermissionsLauncher.launch(arrayOf(Manifest.permission.CAMERA))
     }
 
     private fun launchCameraIntent() {
@@ -936,7 +939,9 @@ class MainActivity : AppCompatActivity() {
         val uri = pendingCameraImageUri
         pendingCameraImageUri = null
         if (success && uri != null) {
-            dealWithImage(listOf(uri))
+            updateCapturedImageWatermark {
+                dealWithImage(listOf(uri))
+            }
             return
         }
         Toast.makeText(
@@ -944,6 +949,23 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.tips_do_not_choose_image),
             Toast.LENGTH_SHORT
         ).show()
+    }
+
+    private fun updateCapturedImageWatermark(onUpdated: () -> Unit) {
+        val updateWatermark = {
+            if (hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                updateWatermarkTextWithGps(onUpdated)
+            } else {
+                updateWatermarkText(null, onUpdated)
+            }
+        }
+        if (hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            updateWatermark()
+            return
+        }
+        pendingPermissionAction = updateWatermark
+        pendingPermissionDeniedAction = updateWatermark
+        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
     private fun openLegacyGallery() {
