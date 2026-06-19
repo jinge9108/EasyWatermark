@@ -27,6 +27,7 @@ android {
         }
 
         val release by getting {
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
