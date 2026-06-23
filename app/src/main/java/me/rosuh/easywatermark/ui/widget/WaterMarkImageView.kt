@@ -684,12 +684,7 @@ class WaterMarkImageView : androidx.appcompat.widget.AppCompatImageView, Corouti
             val tileMode = config.obtainTileMode()
             // calculate the max width of all lines
             config.text.split("\n").forEach {
-                val startIndex = config.text.indexOf(it).coerceAtLeast(0)
-                val lineWidth = textPaint.measureText(
-                    config.text,
-                    startIndex,
-                    (startIndex + it.length).coerceAtMost(config.text.length)
-                ).toInt()
+                val lineWidth = textPaint.measureText(it).toInt()
                 maxLineWidth = max(maxLineWidth, lineWidth)
             }
 
@@ -701,11 +696,12 @@ class WaterMarkImageView : androidx.appcompat.widget.AppCompatImageView, Corouti
                     textPaint,
                     maxLineWidth
                 )
-                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setAlignment(Layout.Alignment.ALIGN_CENTER)
                     .build()
 
-            val textWidth = staticLayout.width.toFloat().coerceAtLeast(1f)
-            val textHeight = staticLayout.height.toFloat().coerceAtLeast(1f)
+            // Add padding to prevent clipping at the boundaries and make the layout larger
+            val textWidth = staticLayout.width.toFloat().coerceAtLeast(1f) + 40f
+            val textHeight = staticLayout.height.toFloat().coerceAtLeast(1f) + 20f
 
             val radians = Math.toRadians(
                 when (config.degree) {
@@ -739,11 +735,11 @@ class WaterMarkImageView : androidx.appcompat.widget.AppCompatImageView, Corouti
                 (finalWidth / 2).toFloat(),
                 (finalHeight / 2).toFloat()
             )
-            // draw text
+            // draw text perfectly centered
             canvas.withSave {
                 this.translate(
-                    ((finalWidth) / 2).toFloat(),
-                    ((finalHeight - staticLayout.getLineBottom(0) - staticLayout.getLineTop(0)) / 2).toFloat()
+                    ((finalWidth - staticLayout.width) / 2).toFloat(),
+                    ((finalHeight - staticLayout.height) / 2).toFloat()
                 )
                 staticLayout.draw(canvas)
             }
