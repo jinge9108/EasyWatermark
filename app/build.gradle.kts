@@ -84,6 +84,7 @@ dependencies {
     implementation(libs.room.ktx)
     implementation(libs.core.ktx)
     ksp(libs.room.compiler)
+    ksp("org.xerial:sqlite-jdbc:3.45.1.0")
 
     implementation(libs.datastore.preference)
 

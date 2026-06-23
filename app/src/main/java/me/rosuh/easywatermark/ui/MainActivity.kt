@@ -86,6 +86,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
     private lateinit var requestCameraPermissionsLauncher: ActivityResultLauncher<Array<String>>
+    private lateinit var requestLocationPermissionOnStartLauncher: ActivityResultLauncher<String>
 
     private var pendingPermissionAction: (() -> Unit)? = null
     private var pendingPermissionDeniedAction: (() -> Unit)? = null
@@ -204,7 +205,13 @@ class MainActivity : AppCompatActivity() {
         SaveImageBSDialogFragment.safetyHide(this@MainActivity.supportFragmentManager)
         if (!hasAutoLaunchedCamera && intent?.action != ACTION_SEND) {
             hasAutoLaunchedCamera = true
-            launchCameraForImage()
+            val sp = getSharedPreferences(MyApp.SP_NAME, MODE_PRIVATE)
+            val hasRequestedLocation = sp.getBoolean("key_location_requested", false)
+            if (!hasRequestedLocation && !hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                requestLocationPermissionOnStartLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            } else {
+                launchCameraForImage()
+            }
         }
     }
 
@@ -315,6 +322,14 @@ class MainActivity : AppCompatActivity() {
                 if (launchView.mode == LaunchView.ViewMode.LaunchMode) {
                     finish()
                 }
+            }
+        requestLocationPermissionOnStartLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
+                getSharedPreferences(MyApp.SP_NAME, MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("key_location_requested", true)
+                    .apply()
+                launchCameraForImage()
             }
     }
 
