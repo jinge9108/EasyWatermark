@@ -27,5 +27,7 @@ data class FuncTitleModel(
         object TileMode : FuncType() {
             val tag = "TileMode"
         }
+
+        object Save : FuncType()
     }
 }

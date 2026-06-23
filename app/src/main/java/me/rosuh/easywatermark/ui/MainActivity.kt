@@ -108,6 +108,11 @@ class MainActivity : AppCompatActivity() {
                 FuncTitleModel.FuncType.Icon,
                 getString(R.string.water_mark_mode_image),
                 R.drawable.ic_func_sticker
+            ),
+            FuncTitleModel(
+                FuncTitleModel.FuncType.Save,
+                getString(R.string.action_save),
+                R.drawable.ic_save
             )
         )
     }
@@ -708,6 +713,9 @@ class MainActivity : AppCompatActivity() {
             }
             FuncTitleModel.FuncType.TileMode -> {
                 TileModeFragment.replaceShow(this, launchView.fcFunctionDetail.id)
+            }
+            FuncTitleModel.FuncType.Save -> {
+                SaveImageBSDialogFragment.safetyShow(supportFragmentManager)
             }
         }
     }
