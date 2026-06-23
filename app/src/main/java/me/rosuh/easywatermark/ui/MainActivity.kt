@@ -946,7 +946,9 @@ class MainActivity : AppCompatActivity() {
         val uri = pendingCameraImageUri
         pendingCameraImageUri = null
         if (success && uri != null) {
-            dealWithImage(listOf(uri))
+            updateCapturedImageWatermark {
+                dealWithImage(listOf(uri))
+            }
             return
         }
         Toast.makeText(
@@ -960,20 +962,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCapturedImageWatermark(onUpdated: () -> Unit) {
-        val updateWatermark = {
-            if (hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-                updateWatermarkTextWithGps(onUpdated)
-            } else {
-                updateWatermarkText(null, onUpdated)
-            }
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val hasLocationPermission = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        val location = if (hasLocationPermission) {
+            runCatching {
+                locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                    ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            }.getOrNull()
+        } else {
+            null
         }
-        if (hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            updateWatermark()
-            return
-        }
-        pendingPermissionAction = updateWatermark
-        pendingPermissionDeniedAction = updateWatermark
-        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        updateWatermarkText(location, onUpdated)
     }
 
     private fun openLegacyGallery() {
