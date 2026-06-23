@@ -946,9 +946,7 @@ class MainActivity : AppCompatActivity() {
         val uri = pendingCameraImageUri
         pendingCameraImageUri = null
         if (success && uri != null) {
-            updateCapturedImageWatermark {
-                dealWithImage(listOf(uri))
-            }
+            dealWithImage(listOf(uri))
             return
         }
         Toast.makeText(
