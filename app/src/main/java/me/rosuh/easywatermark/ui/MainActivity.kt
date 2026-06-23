@@ -182,7 +182,14 @@ class MainActivity : AppCompatActivity() {
             initRecoveryView()
             return
         }
-        launchView = LaunchView(this)
+        launchView = LaunchView(this).apply {
+            setBackgroundColor(
+                ContextCompat.getColor(
+                    this@MainActivity,
+                    R.color.md_theme_dark_background
+                )
+            )
+        }
         setContentView(launchView)
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
