@@ -77,7 +77,6 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var pickIconPhotoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
-    private lateinit var pickPhotoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
     private lateinit var pickIconLegacyLauncher: ActivityResultLauncher<String>
     private lateinit var takePictureLauncher: ActivityResultLauncher<Uri>
     private val viewModel: MainViewModel by viewModels()
@@ -282,11 +281,6 @@ class MainActivity : AppCompatActivity() {
                 val result = uri?.let(::listOf) ?: emptyList()
                 handlePickedMedia(REQ_PICK_ICON, result)
             }
-        pickPhotoPickerLauncher =
-            registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-                val result = uri?.let(::listOf) ?: emptyList()
-                handlePickedMedia(REQ_CODE_PICK_IMAGE, result)
-            }
         pickIconLegacyLauncher =
             registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
                 val result = uri?.let(::listOf) ?: emptyList()
@@ -326,7 +320,7 @@ class MainActivity : AppCompatActivity() {
                 pendingPermissionAction = null
                 pendingPermissionDeniedAction = null
                 if (launchView.mode == LaunchView.ViewMode.LaunchMode) {
-                    // Do not finish the activity, so they can still pick images from gallery
+                    finish()
                 }
             }
         requestLocationPermissionOnStartLauncher =
@@ -534,10 +528,6 @@ class MainActivity : AppCompatActivity() {
         // go about page
         launchView.ivGoAboutPage.setOnClickListener {
             startActivity(Intent(this, AboutActivity::class.java))
-        }
-        // camera button
-        launchView.ivCameraTips.setOnClickListener {
-            launchCameraForImage()
         }
         // pick image button
         launchView.ivSelectedPhotoTips.setOnClickListener {
@@ -777,6 +767,11 @@ class MainActivity : AppCompatActivity() {
      * Opens camera for the base image, or an image picker for watermark icons.
      */
     private fun performFileSearch(requestCode: Int) {
+        if (requestCode == REQ_CODE_PICK_IMAGE) {
+            launchCameraForImage()
+            return
+        }
+
         val request = PickVisualMediaRequest.Builder()
             .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
             .build()
@@ -785,7 +780,6 @@ class MainActivity : AppCompatActivity() {
             launchView.logoView.stop()
             when (requestCode) {
                 REQ_PICK_ICON -> pickIconPhotoPickerLauncher.launch(request)
-                REQ_CODE_PICK_IMAGE -> pickPhotoPickerLauncher.launch(request)
             }
             return
         }
@@ -977,6 +971,9 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.tips_do_not_choose_image),
             Toast.LENGTH_SHORT
         ).show()
+        if (launchView.mode == LaunchView.ViewMode.LaunchMode) {
+            finish()
+        }
     }
 
     private fun updateCapturedImageWatermark(onUpdated: () -> Unit) {
@@ -1076,14 +1073,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetView() {
-        launchView.toLaunchMode()
         viewModel.resetJobStatus()
         viewModel.clearData()
         launchView.ivPhoto.reset()
         bgTransformAnimator?.cancel()
         TextContentDisplayFragment.remove(this)
-        doApplyBgChanged()
-        hideDetailPanel()
+        finish()
     }
 
     private fun doApplyBgChanged(

@@ -70,28 +70,14 @@ class LaunchView : CustomViewGroup {
         }
     }
 
-    val ivCameraTips: MaterialButton by lazy {
+    val ivSelectedPhotoTips: MaterialButton by lazy {
         MaterialButton(context).apply {
             minHeight = 56.dp
-            minWidth = 200.dp
+            minWidth = 120.dp
             cornerRadius = 56.dp / 3
             textAlignment = TEXT_ALIGNMENT_CENTER
             gravity = Gravity.CENTER
             text = context.getString(R.string.tips_pick_image)
-            shapeAppearanceModel = ShapeAppearanceModel.Builder().also {
-                it.setAllCornerSizes(0f)
-            }.build()
-        }
-    }
-
-    val ivSelectedPhotoTips: MaterialButton by lazy {
-        MaterialButton(context).apply {
-            minHeight = 56.dp
-            minWidth = 200.dp
-            cornerRadius = 56.dp / 3
-            textAlignment = TEXT_ALIGNMENT_CENTER
-            gravity = Gravity.CENTER
-            text = context.getString(R.string.action_pick_from_gallery)
             shapeAppearanceModel = ShapeAppearanceModel.Builder().also {
                 it.setAllCornerSizes(0f)
             }.build()
@@ -201,7 +187,7 @@ class LaunchView : CustomViewGroup {
 
     //region 3 private field
     private val launchViews by lazy {
-        listOf(logoView, ivCameraTips, ivSelectedPhotoTips, ivGoAboutPage)
+        listOf(logoView, ivSelectedPhotoTips, ivGoAboutPage)
     }
 
     private val editorViews by lazy {
@@ -255,10 +241,10 @@ class LaunchView : CustomViewGroup {
         clipChildren = false
         clipToPadding = false
 //        setBackgroundColor(ContextCompat.getColor(context, R.color.md_theme_dark_background))
-        launchViews.forEach {
-            it.isVisible = false
-            addView(it)
-        }
+        // launchViews.forEach {
+        //     it.isVisible = false
+        //     addView(it)
+        // }
         editorViews.forEach {
             it.isVisible = false
             addView(it)
@@ -279,7 +265,7 @@ class LaunchView : CustomViewGroup {
             }
         }
         post {
-            launchModeAppearAnimationList.forEach { it.start() }
+            // launchModeAppearAnimationList.forEach { it.start() }
         }
     }
 
@@ -317,13 +303,10 @@ class LaunchView : CustomViewGroup {
 
     private fun layoutLaunch() {
         logoView.let {
-            it.layoutCenterHorizontal(appendY = (measuredHeight * 0.15f).toInt())
-        }
-        ivCameraTips.let {
-            it.layoutCenterHorizontal(appendY = (measuredHeight * 0.5f).toInt())
+            it.layoutCenterHorizontal(appendY = (measuredHeight * 0.2f).toInt())
         }
         ivSelectedPhotoTips.let {
-            it.layoutCenterHorizontal(appendY = (measuredHeight * 0.62f).toInt())
+            it.layoutCenterHorizontal(appendY = (measuredHeight * 0.6f).toInt())
         }
         ivGoAboutPage.let {
             it.layoutCenterHorizontal(appendY = (measuredHeight - it.measuredHeightWithMargins))
@@ -375,7 +358,7 @@ class LaunchView : CustomViewGroup {
             }
             ViewMode.LaunchMode -> {
                 editorModeDisappearAnimationList.forEach { it.start() }
-                launchModeAppearAnimationList.forEach { it.start() }
+                // launchModeAppearAnimationList.forEach { it.start() }
             }
         }
         launchViewListener?.onModeChange(oldMode, toMode)
