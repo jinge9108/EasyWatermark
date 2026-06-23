@@ -36,6 +36,7 @@
 
         <activity
             android:name=".ui.MainActivity"
+            android:theme="@style/Theme.MyApp.Launcher"
             android:configChanges="orientation|keyboardHidden"
             android:exported="true"
             android:launchMode="singleTask"

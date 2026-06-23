@@ -2,6 +2,11 @@
 
     <style name="Theme.MyApp" parent="Theme.BaseTheme"/>
 
+    <style name="Theme.MyApp.Launcher" parent="Theme.MyApp">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
     <style name="Theme.BaseTheme" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
         <item name="colorPrimary">@color/md_theme_dark_primary</item>
