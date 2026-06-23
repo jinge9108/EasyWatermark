@@ -241,10 +241,10 @@ class LaunchView : CustomViewGroup {
         clipChildren = false
         clipToPadding = false
 //        setBackgroundColor(ContextCompat.getColor(context, R.color.md_theme_dark_background))
-        launchViews.forEach {
-            it.isVisible = false
-            addView(it)
-        }
+        // launchViews.forEach {
+        //     it.isVisible = false
+        //     addView(it)
+        // }
         editorViews.forEach {
             it.isVisible = false
             addView(it)
@@ -265,7 +265,7 @@ class LaunchView : CustomViewGroup {
             }
         }
         post {
-            launchModeAppearAnimationList.forEach { it.start() }
+            // launchModeAppearAnimationList.forEach { it.start() }
         }
     }
 
@@ -358,7 +358,7 @@ class LaunchView : CustomViewGroup {
             }
             ViewMode.LaunchMode -> {
                 editorModeDisappearAnimationList.forEach { it.start() }
-                launchModeAppearAnimationList.forEach { it.start() }
+                // launchModeAppearAnimationList.forEach { it.start() }
             }
         }
         launchViewListener?.onModeChange(oldMode, toMode)
