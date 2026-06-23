@@ -195,10 +195,7 @@ class MainActivity : AppCompatActivity() {
         checkHadCrash()
         // Activity was recycled but dialog still showing in some case?
         SaveImageBSDialogFragment.safetyHide(this@MainActivity.supportFragmentManager)
-        launchView.post {
-            if (hasAutoLaunchedCamera || intent?.action == ACTION_SEND) {
-                return@post
-            }
+        if (!hasAutoLaunchedCamera && intent?.action != ACTION_SEND) {
             hasAutoLaunchedCamera = true
             launchCameraForImage()
         }
@@ -308,6 +305,9 @@ class MainActivity : AppCompatActivity() {
                 ).show()
                 pendingPermissionAction = null
                 pendingPermissionDeniedAction = null
+                if (launchView.mode == LaunchView.ViewMode.LaunchMode) {
+                    finish()
+                }
             }
     }
 
@@ -949,6 +949,9 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.tips_do_not_choose_image),
             Toast.LENGTH_SHORT
         ).show()
+        if (launchView.mode == LaunchView.ViewMode.LaunchMode) {
+            finish()
+        }
     }
 
     private fun updateCapturedImageWatermark(onUpdated: () -> Unit) {
@@ -1051,14 +1054,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetView() {
-        launchView.toLaunchMode()
         viewModel.resetJobStatus()
         viewModel.clearData()
         launchView.ivPhoto.reset()
         bgTransformAnimator?.cancel()
         TextContentDisplayFragment.remove(this)
-        doApplyBgChanged()
-        hideDetailPanel()
+        finish()
     }
 
     private fun doApplyBgChanged(
