@@ -696,12 +696,12 @@ class WaterMarkImageView : androidx.appcompat.widget.AppCompatImageView, Corouti
                     textPaint,
                     maxLineWidth
                 )
-                    .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                     .build()
 
             // Add padding to prevent clipping at the boundaries and make the layout larger
-            val textWidth = staticLayout.width.toFloat().coerceAtLeast(1f) + 40f
-            val textHeight = staticLayout.height.toFloat().coerceAtLeast(1f) + 20f
+            val textWidth = staticLayout.width.toFloat().coerceAtLeast(1f) + 80f
+            val textHeight = staticLayout.height.toFloat().coerceAtLeast(1f) + 40f
 
             val radians = Math.toRadians(
                 when (config.degree) {
@@ -738,7 +738,7 @@ class WaterMarkImageView : androidx.appcompat.widget.AppCompatImageView, Corouti
             // draw text perfectly centered
             canvas.withSave {
                 this.translate(
-                    ((finalWidth - staticLayout.width) / 2).toFloat(),
+                    ((finalWidth) / 2).toFloat(),
                     ((finalHeight - staticLayout.height) / 2).toFloat()
                 )
                 staticLayout.draw(canvas)
