@@ -700,8 +700,8 @@ class WaterMarkImageView : androidx.appcompat.widget.AppCompatImageView, Corouti
                     .build()
 
             // Add padding to prevent clipping at the boundaries and make the layout larger
-            val textWidth = staticLayout.width.toFloat().coerceAtLeast(1f) + 80f
-            val textHeight = staticLayout.height.toFloat().coerceAtLeast(1f) + 40f
+            val textWidth = staticLayout.width.toFloat().coerceAtLeast(1f) + 16f
+            val textHeight = staticLayout.height.toFloat().coerceAtLeast(1f) + 8f
 
             val radians = Math.toRadians(
                 when (config.degree) {
