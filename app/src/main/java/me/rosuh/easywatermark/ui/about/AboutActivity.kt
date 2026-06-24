@@ -91,6 +91,39 @@ class AboutActivity : AppCompatActivity() {
             tvVersion.setOnClickListener {
                 openLink("https://github.com/rosuH/EasyWatermark/releases/")
             }
+            tvVersion.setOnLongClickListener {
+                val sp = getSharedPreferences(me.rosuh.easywatermark.MyApp.SP_NAME, MODE_PRIVATE)
+                val currentKey = sp.getString("key_gaode_api_key", "") ?: ""
+                val editText = android.widget.EditText(this@AboutActivity).apply {
+                    setText(currentKey)
+                    setHint("请输入高德 Web服务 API Key")
+                }
+                val container = android.widget.FrameLayout(this@AboutActivity).apply {
+                    val params = android.widget.FrameLayout.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        leftMargin = 60
+                        rightMargin = 60
+                        topMargin = 20
+                        bottomMargin = 20
+                    }
+                    editText.layoutParams = params
+                    addView(editText)
+                }
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@AboutActivity)
+                    .setTitle("设置高德地图 API Key")
+                    .setMessage("输入您申请的高德地图 Web服务(Web API) 密钥。拍照定位时将使用高德逆地理编码以精确到门牌号与建筑物。留空则恢复默认定位接口。")
+                    .setView(container)
+                    .setPositiveButton("保存") { _, _ ->
+                        val inputKey = editText.text.toString().trim()
+                        sp.edit().putString("key_gaode_api_key", inputKey).apply()
+                        Toast.makeText(this@AboutActivity, "保存成功", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("取消", null)
+                    .show()
+                true
+            }
             tvVersionValue.text = BuildConfig.VERSION_NAME
             tvRating.setOnClickListener {
                 openLink(Uri.parse("market://details?id=me.rosuh.easywatermark"))

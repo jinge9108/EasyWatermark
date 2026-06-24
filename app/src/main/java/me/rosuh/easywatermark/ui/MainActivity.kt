@@ -928,6 +928,15 @@ class MainActivity : AppCompatActivity() {
 
     @Suppress("DEPRECATION")
     private fun resolveAddress(location: Location): String? {
+        val sp = getSharedPreferences(MyApp.SP_NAME, MODE_PRIVATE)
+        val gaodeKey = sp.getString("key_gaode_api_key", "") ?: ""
+        if (gaodeKey.isNotBlank()) {
+            val amapAddress = queryAmapRegeo(location.latitude, location.longitude, gaodeKey)
+            if (!amapAddress.isNullOrBlank()) {
+                return amapAddress
+            }
+        }
+
         if (Geocoder.isPresent().not()) {
             return null
         }
@@ -964,6 +973,34 @@ class MainActivity : AppCompatActivity() {
         }
 
         return selectedAddress?.let { compileAddress(it) }
+    }
+
+    private fun queryAmapRegeo(lat: Double, lng: Double, key: String): String? {
+        return runCatching {
+            val (gcjLat, gcjLng) = wgs84ToGcj02(lat, lng)
+            val urlStr = "https://restapi.amap.com/v3/geocode/regeo?key=$key&location=$gcjLng,$gcjLat&extensions=all"
+            val conn = java.net.URL(urlStr).openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            val responseCode = conn.responseCode
+            if (responseCode == 200) {
+                val jsonStr = conn.inputStream.bufferedReader().use { it.readText() }
+                val json = org.json.JSONObject(jsonStr)
+                if (json.optString("status") == "1") {
+                    val regeocode = json.optJSONObject("regeocode")
+                    val formattedAddress = regeocode?.optString("formatted_address")
+                    if (!formattedAddress.isNullOrBlank()) {
+                        return if (formattedAddress.startsWith("中国")) {
+                            formattedAddress.substring(2)
+                        } else {
+                            formattedAddress
+                        }
+                    }
+                }
+            }
+            null
+        }.getOrNull()
     }
 
     private fun compileAddress(address: Address): String? {
