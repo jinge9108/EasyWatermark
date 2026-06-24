@@ -93,6 +93,8 @@ class MainActivity : AppCompatActivity() {
     private var pendingPermissionDeniedAction: (() -> Unit)? = null
     private var pendingCameraImageUri: Uri? = null
     private var hasAutoLaunchedCamera = false
+    private var freshLocation: Location? = null
+    private var activeLocationListener: LocationListener? = null
 
     private val isSystemPhotoPickerAvailable by lazy {
         ActivityResultContracts.PickVisualMedia.isPhotoPickerAvailable(this)
@@ -833,9 +835,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
         pendingCameraImageUri = uri
+        startBackgroundLocationRequest()
         runCatching {
             takePictureLauncher.launch(uri)
         }.getOrElse {
+            stopBackgroundLocationRequest()
             pendingCameraImageUri = null
             launchView.logoView.start()
             Toast.makeText(
@@ -1087,12 +1091,14 @@ class MainActivity : AppCompatActivity() {
         launchView.logoView.start()
         val uri = pendingCameraImageUri
         pendingCameraImageUri = null
+        stopBackgroundLocationRequest()
         if (success && uri != null) {
             updateCapturedImageWatermark {
                 dealWithImage(listOf(uri))
             }
             return
         }
+        freshLocation = null
         Toast.makeText(
             this,
             getString(R.string.tips_do_not_choose_image),
@@ -1107,14 +1113,66 @@ class MainActivity : AppCompatActivity() {
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val hasLocationPermission = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         val location = if (hasLocationPermission) {
-            runCatching {
+            freshLocation ?: runCatching {
                 locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                     ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
             }.getOrNull()
         } else {
             null
         }
+        freshLocation = null
         updateWatermarkText(location, onUpdated)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startBackgroundLocationRequest() {
+        if (!hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            return
+        }
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        freshLocation = null
+        val listener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                if (freshLocation == null || location.accuracy < (freshLocation?.accuracy ?: Float.MAX_VALUE)) {
+                    freshLocation = location
+                }
+            }
+            override fun onProviderDisabled(provider: String) {}
+            override fun onProviderEnabled(provider: String) {}
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+        }
+        activeLocationListener = listener
+        runCatching {
+            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    0L,
+                    0f,
+                    listener,
+                    Looper.getMainLooper()
+                )
+            }
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    0L,
+                    0f,
+                    listener,
+                    Looper.getMainLooper()
+                )
+            }
+        }
+    }
+
+    private fun stopBackgroundLocationRequest() {
+        val listener = activeLocationListener
+        if (listener != null) {
+            val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            runCatching {
+                locationManager.removeUpdates(listener)
+            }
+            activeLocationListener = null
+        }
     }
 
     private fun openLegacyGallery() {
