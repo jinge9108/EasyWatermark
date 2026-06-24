@@ -15,6 +15,7 @@ import android.graphics.drawable.ColorDrawable
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
+import android.location.Address
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
@@ -926,24 +927,142 @@ class MainActivity : AppCompatActivity() {
         if (Geocoder.isPresent().not()) {
             return null
         }
-        return runCatching {
-            Geocoder(this, Locale.getDefault())
-                .getFromLocation(location.latitude, location.longitude, 1)
-                ?.firstOrNull()
-                ?.let { address ->
-                    address.getAddressLine(0).orEmpty().ifBlank {
-                        listOfNotNull(
-                            address.thoroughfare,
-                            address.subThoroughfare,
-                            address.subLocality,
-                            address.locality,
-                            address.adminArea,
-                            address.countryName
-                        ).filter { it.isNotBlank() }.distinct().joinToString("")
-                    }
-                }
-                ?.takeIf { it.isNotBlank() }
+        val geocoder = Geocoder(this, Locale.getDefault())
+        
+        // 1. Get raw WGS-84 address
+        val wgsAddress = runCatching {
+            geocoder.getFromLocation(location.latitude, location.longitude, 1)?.firstOrNull()
         }.getOrNull()
+
+        // 2. If inside China, try converted GCJ-02 address
+        val isChina = !isOutOfChina(location.latitude, location.longitude)
+        val gcjAddress = if (isChina) {
+            val (gcjLat, gcjLng) = wgs84ToGcj02(location.latitude, location.longitude)
+            runCatching {
+                geocoder.getFromLocation(gcjLat, gcjLng, 1)?.firstOrNull()
+            }.getOrNull()
+        } else {
+            null
+        }
+
+        // 3. Choose the one with the higher precision score
+        val selectedAddress = when {
+            wgsAddress != null && gcjAddress != null -> {
+                if (getAddressPrecisionScore(gcjAddress) > getAddressPrecisionScore(wgsAddress)) {
+                    gcjAddress
+                } else {
+                    wgsAddress
+                }
+            }
+            wgsAddress != null -> wgsAddress
+            gcjAddress != null -> gcjAddress
+            else -> null
+        }
+
+        return selectedAddress?.let { compileAddress(it) }
+    }
+
+    private fun compileAddress(address: Address): String? {
+        val sb = StringBuilder()
+        if (!address.adminArea.isNullOrBlank()) {
+            sb.append(address.adminArea)
+        }
+        if (!address.locality.isNullOrBlank() && address.locality != address.adminArea) {
+            sb.append(address.locality)
+        }
+        if (!address.subLocality.isNullOrBlank()) {
+            sb.append(address.subLocality)
+        }
+        if (!address.thoroughfare.isNullOrBlank()) {
+            sb.append(address.thoroughfare)
+        }
+        if (!address.subThoroughfare.isNullOrBlank()) {
+            sb.append(address.subThoroughfare)
+        }
+        if (!address.featureName.isNullOrBlank() && 
+            address.featureName != address.thoroughfare && 
+            address.featureName != address.subThoroughfare &&
+            address.featureName != address.locality &&
+            address.featureName != address.subLocality &&
+            address.featureName != address.adminArea
+        ) {
+            sb.append(address.featureName)
+        }
+        val compiled = sb.toString()
+        if (compiled.isNotBlank()) {
+            return if (compiled.startsWith("中国")) {
+                compiled.substring(2)
+            } else {
+                compiled
+            }
+        }
+        val fallback = address.getAddressLine(0).orEmpty()
+        return if (fallback.startsWith("中国")) {
+            fallback.substring(2)
+        } else {
+            fallback.takeIf { it.isNotBlank() }
+        }
+    }
+
+    private fun getAddressPrecisionScore(address: Address): Int {
+        var score = 0
+        if (!address.subThoroughfare.isNullOrBlank()) {
+            score += 10
+        }
+        if (!address.featureName.isNullOrBlank() && address.featureName != address.thoroughfare) {
+            score += 8
+        }
+        if (!address.premises.isNullOrBlank()) {
+            score += 5
+        }
+        if (!address.thoroughfare.isNullOrBlank()) {
+            score += 2
+        }
+        val line0 = address.getAddressLine(0).orEmpty()
+        if (line0.any { it.isDigit() }) {
+            score += 5
+        }
+        if (line0.contains("号") || line0.contains("栋") || line0.contains("楼") || line0.contains("室") || line0.contains("弄")) {
+            score += 5
+        }
+        score += line0.length
+        return score
+    }
+
+    private fun wgs84ToGcj02(wgsLat: Double, wgsLng: Double): Pair<Double, Double> {
+        if (isOutOfChina(wgsLat, wgsLng)) return Pair(wgsLat, wgsLng)
+        val pi = 3.1415926535897932384626
+        val a = 6378245.0
+        val ee = 0.00669342162296594323
+        var dLat = transformLat(wgsLng - 105.0, wgsLat - 35.0, pi)
+        var dLng = transformLng(wgsLng - 105.0, wgsLat - 35.0, pi)
+        val radLat = wgsLat / 180.0 * pi
+        var magic = Math.sin(radLat)
+        magic = 1 - ee * magic * magic
+        val sqrtMagic = Math.sqrt(magic)
+        dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * pi)
+        dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * pi)
+        return Pair(wgsLat + dLat, wgsLng + dLng)
+    }
+
+    private fun isOutOfChina(lat: Double, lng: Double): Boolean {
+        return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271
+    }
+
+    private fun transformLat(x: Double, y: Double, pi: Double): Double {
+        var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x))
+        ret += (20.0 * Math.sin(6.0 * x * pi) + 20.0 * Math.sin(2.0 * x * pi)) * 2.0 / 3.0
+        ret += (20.0 * Math.sin(y * pi) + 40.0 * Math.sin(y / 3.0 * pi)) * 2.0 / 3.0
+        ret += (160.0 * Math.sin(y / 12.0 * pi) + 320.0 * Math.sin(y * pi / 30.0)) * 2.0 / 3.0
+        return ret
+    }
+
+    private fun transformLng(x: Double, y: Double, pi: Double): Double {
+        var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x))
+        ret += (20.0 * Math.sin(6.0 * x * pi) + 20.0 * Math.sin(2.0 * x * pi)) * 2.0 / 3.0
+        ret += (20.0 * Math.sin(x * pi) + 40.0 * Math.sin(x / 3.0 * pi)) * 2.0 / 3.0
+        ret += (150.0 * Math.sin(x / 12.0 * pi) + 300.0 * Math.sin(x / 30.0 * pi)) * 2.0 / 3.0
+        return ret
     }
 
     private fun formatCoordinates(location: Location): String {
